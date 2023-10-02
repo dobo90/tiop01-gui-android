@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <usb-device vendor-id="12346" product-id="16385" />  <!-- 303a:4001 Espressif Systems Tiny Thermal Imager(TIOPS2) -->
+</resources>
