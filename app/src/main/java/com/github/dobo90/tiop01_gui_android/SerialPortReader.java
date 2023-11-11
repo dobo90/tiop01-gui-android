@@ -1,17 +1,13 @@
 package com.github.dobo90.tiop01_gui_android;
 
-import java.io.IOException;
-import java.util.List;
-
-import com.hoho.android.usbserial.driver.UsbSerialDriver;
-import com.hoho.android.usbserial.driver.UsbSerialPort;
-import com.hoho.android.usbserial.driver.UsbSerialProber;
+import com.felhr.usbserial.CDCSerialDevice;
 
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.Build;
@@ -22,19 +18,21 @@ public final class SerialPortReader {
     private static final String INTENT_ACTION_GRANT_USB = BuildConfig.APPLICATION_ID + ".GRANT_USB";
     private static MainActivity activity;
 
-    private UsbSerialPort serialPort;
+    private CDCSerialDevice serialDevice;
 
-    public SerialPortReader(UsbSerialPort serialPort) {
-        this.serialPort = serialPort;
+    public SerialPortReader(CDCSerialDevice serialDevice) {
+        this.serialDevice = serialDevice;
     }
 
-    public int read(final byte[] dest) {
-        try {
-            return serialPort.read(dest, 0);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return -1;
-        }
+    public int read(byte[] buffer) {
+        int bytesRead = 0;
+
+        do {
+            bytesRead = serialDevice.syncRead(buffer, 0);
+        } while (bytesRead == 0);
+
+        return bytesRead;
+
     }
 
     public static void setActivity(MainActivity activity) {
@@ -43,16 +41,21 @@ public final class SerialPortReader {
 
     public static SerialPortReader openReader() {
         UsbManager usbManager = (UsbManager) activity.getSystemService(Context.USB_SERVICE);
-        List<UsbSerialDriver> availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(usbManager);
-        if (availableDrivers.isEmpty()) {
-            Log.d(TAG, "No driver available");
+        UsbDevice device = null;
+
+        for (UsbDevice d : usbManager.getDeviceList().values()) {
+            if (d.getVendorId() == 0x303a && d.getProductId() == 0x4001) {
+                device = d;
+            }
+        }
+
+        if (device == null) {
+            Log.e(TAG, "Device not found");
             return null;
         }
 
-        UsbSerialDriver driver = availableDrivers.get(0);
-
-        if (!usbManager.hasPermission(driver.getDevice())) {
-            Boolean gotPermission = askAndWaitForPermission(usbManager, driver);
+        if (!usbManager.hasPermission(device)) {
+            Boolean gotPermission = askAndWaitForPermission(usbManager, device);
 
             if (!gotPermission) {
                 Log.e(TAG, "Failed to get premission");
@@ -60,28 +63,24 @@ public final class SerialPortReader {
             }
         }
 
-        UsbDeviceConnection connection = usbManager.openDevice(driver.getDevice());
+        UsbDeviceConnection connection = usbManager.openDevice(device);
         if (connection == null) {
             Log.e(TAG, "Failed to open connection");
             return null;
         }
 
-        UsbSerialPort port = driver.getPorts().get(0);
-        try {
-            port.open(connection);
-            port.setParameters(921600, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-            port.setDTR(true);
-            port.setRTS(true);
-
-            return new SerialPortReader(port);
-        } catch (IOException e) {
+        CDCSerialDevice port = new CDCSerialDevice(device, connection);
+        if (!port.syncOpen()) {
             Log.e(TAG, "Failed to open port");
-            e.printStackTrace();
             return null;
         }
+
+        port.setBaudRate(921600);
+
+        return new SerialPortReader(port);
     }
 
-    private static Boolean askAndWaitForPermission(UsbManager usbManager, UsbSerialDriver driver) {
+    private static Boolean askAndWaitForPermission(UsbManager usbManager, UsbDevice device) {
         final Boolean[] granted = { null };
         BroadcastReceiver usbReceiver = new BroadcastReceiver() {
             @Override
@@ -95,7 +94,7 @@ public final class SerialPortReader {
                 flags);
         IntentFilter filter = new IntentFilter(INTENT_ACTION_GRANT_USB);
         activity.registerReceiver(usbReceiver, filter);
-        usbManager.requestPermission(driver.getDevice(), permissionIntent);
+        usbManager.requestPermission(device, permissionIntent);
 
         for (int i = 0; i < 600; i++) {
             if (granted[0] != null)
