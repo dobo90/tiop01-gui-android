@@ -14,7 +14,7 @@ import com.google.androidgamesdk.GameActivity;
 public class MainActivity extends GameActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SerialPortReader.setActivity(this);
+        SerialPortReadWrite.setActivity(this);
 
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         hideSystemUI();

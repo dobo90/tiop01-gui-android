@@ -13,14 +13,14 @@ import android.hardware.usb.UsbManager;
 import android.os.Build;
 import android.util.Log;
 
-public final class SerialPortReader {
+public final class SerialPortReadWrite {
     private static final String TAG = BuildConfig.APPLICATION_ID + ".SerialPortReader";
     private static final String INTENT_ACTION_GRANT_USB = BuildConfig.APPLICATION_ID + ".GRANT_USB";
     private static MainActivity activity;
 
     private CDCSerialDevice serialDevice;
 
-    public SerialPortReader(CDCSerialDevice serialDevice) {
+    public SerialPortReadWrite(CDCSerialDevice serialDevice) {
         this.serialDevice = serialDevice;
     }
 
@@ -35,11 +35,15 @@ public final class SerialPortReader {
 
     }
 
-    public static void setActivity(MainActivity activity) {
-        SerialPortReader.activity = activity;
+    public int write(byte[] buffer) {
+        return serialDevice.syncWrite(buffer, 0);
     }
 
-    public static SerialPortReader openReader() {
+    public static void setActivity(MainActivity activity) {
+        SerialPortReadWrite.activity = activity;
+    }
+
+    public static SerialPortReadWrite openReader() {
         UsbManager usbManager = (UsbManager) activity.getSystemService(Context.USB_SERVICE);
         UsbDevice device = null;
 
@@ -77,7 +81,7 @@ public final class SerialPortReader {
 
         port.setBaudRate(921600);
 
-        return new SerialPortReader(port);
+        return new SerialPortReadWrite(port);
     }
 
     private static Boolean askAndWaitForPermission(UsbManager usbManager, UsbDevice device) {
