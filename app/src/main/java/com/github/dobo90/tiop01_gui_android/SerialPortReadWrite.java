@@ -43,7 +43,7 @@ public final class SerialPortReadWrite {
         SerialPortReadWrite.activity = activity;
     }
 
-    public static SerialPortReadWrite openReader() {
+    public static SerialPortReadWrite open() {
         UsbManager usbManager = (UsbManager) activity.getSystemService(Context.USB_SERVICE);
         UsbDevice device = null;
 
