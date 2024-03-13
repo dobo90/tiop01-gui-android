@@ -1,5 +1,6 @@
 package com.github.dobo90.tiop01_gui_android;
 
+import android.app.NativeActivity;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
@@ -9,9 +10,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
-import com.google.androidgamesdk.GameActivity;
-
-public class MainActivity extends GameActivity {
+public class MainActivity extends NativeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         SerialPortReadWrite.setActivity(this);
